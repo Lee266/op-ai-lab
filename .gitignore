@@ -1,4 +1,10 @@
-/.ipynb_checkpoints
+.ipynb_checkpoints*
 
-# version確認用ファイル
+# IPython Notebook のチェックポイント
 check-library.ipynb
+
+# Python コンパイルキャッシュ
+__pycache__
+
+# ログファイル
+log.txt
