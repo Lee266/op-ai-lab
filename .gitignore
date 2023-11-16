@@ -8,3 +8,7 @@ __pycache__
 
 # ログファイル
 log.txt
+
+# datasets
+*.gz
+*-ubyte
