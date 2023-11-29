@@ -12,3 +12,5 @@ log.txt
 # datasets
 *.gz
 *-ubyte
+
+*.env
