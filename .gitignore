@@ -14,3 +14,13 @@ log.txt
 *-ubyte
 
 *.env
+
+*.pdf
+
+# テストをlocalで行いたいときに作成するフォルダ
+*test
+
+# 学習済みの重みをlocalで管理するフォルダ
+pretrained
+# 思いファイル管理しない
+*.pth

@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 class ShowImages:
   """ データセットやデータローダーから画像を表示するためのクラス.
-  
+
   Methods:
     - show_images: データセットから複数の画像を表示するメソッド.
     - show_images_loader: データローダーから複数の画像を表示するメソッド.
@@ -16,7 +16,7 @@ class ShowImages:
   def imshow(self, img, ax):
       npimg = img.numpy()
       ax.imshow(np.transpose(npimg, (1, 2, 0)))
-  
+
   def show_images(self, dataset, num_images_to_display:int=20) -> None:
     """データセットから複数の画像を表示するメソッド.
 
@@ -34,7 +34,7 @@ class ShowImages:
         axes[i].axis('off')
     plt.tight_layout()
     plt.show()
-  
+
   def show_images_loader(self, dataset_lodaer:DataLoader, num_images_to_display:int=20) -> None:
     """データローダーから複数の画像を表示するメソッド.
 
