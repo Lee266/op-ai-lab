@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torchvision import transforms
 from gradcam.utils import visualize_cam
 from util.path_functions import PathFunctions
+from matplotlib.backends.backend_pdf import PdfPages
 
 FIXED_DIRECTORY = '/usr/src/ai-lab/src'
 path_functions_instance = PathFunctions()
@@ -17,7 +18,7 @@ class Visualization:
     print("Active Visualization instance created")
 
   def position_embedding(self, checkpointPath, model):
-    checkpoint = torch.load(checkpointPath)
+    checkpoint = torch.load(path_functions_instance.absolutePath(checkpointPath))
     model.load_state_dict(checkpoint)
     model.eval()
     # モデルから位置埋め込みを読み込む
@@ -50,89 +51,97 @@ class Visualization:
       return blocks
 
   def attention_map(self, model, checkpointPath:str, imagePath:str, imageSize:int=224, checkpointNeedModel:bool=False):
-    # モデルの読み込み
-    model.eval()
-    checkpoint = torch.load(path_functions_instance.absolutePath(checkpointPath))
-    if checkpointNeedModel:
-      model.load_state_dict(checkpoint["model"])
-    else:
-      model.load_state_dict(checkpoint)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model.eval()
+      checkpoint = torch.load(path_functions_instance.absolutePath(checkpointPath))
+      if checkpointNeedModel:
+        model.load_state_dict(checkpoint["model"])
+      else:
+        model.load_state_dict(checkpoint)
+      device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+      model.to(device)
+      model.eval()
 
-    # 画像ファイルを読み込み
-    BaseImage = Image.open(path_functions_instance.absolutePath(imagePath)).convert('RGB')
-    normalize = transforms.Normalize(
-      mean=[0.485, 0.456, 0.406],
-      std=[0.229, 0.224, 0.225]
-    )
-    transform = transforms.Compose([
-      transforms.Resize(imageSize),
-      transforms.CenterCrop(imageSize),
-      transforms.ToTensor(),
-      normalize
-    ])
-    invTrans = transforms.Compose([
-      transforms.Normalize(
-        mean=[-0.485/0.229, -0.456/0.224, -0.406/0.255],
-        std=[1/0.229, 1/0.224, 1/0.255]),
-    ])
-    img = transform(BaseImage)
-    img = img.view(1, *img.shape)
-    print(f"BaseImageInfo: (Size: {BaseImage.size}, Mode: {BaseImage.mode})")
-    print(f"TransformImageInfo: {img.shape}")
+      # 画像ファイルを読み込み
+      BaseImage = Image.open(path_functions_instance.absolutePath(imagePath)).convert('RGB')
+      normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+      transform = transforms.Compose([
+        transforms.Resize(imageSize),
+        transforms.CenterCrop(imageSize),
+        transforms.ToTensor(),
+        normalize
+      ])
+      invTrans = transforms.Compose([
+        transforms.Normalize(
+          mean=[-0.485/0.229, -0.456/0.224, -0.406/0.255],
+          std=[1/0.229, 1/0.224, 1/0.255]),
+      ])
+      img = transform(BaseImage)
+      img = img.view(1, *img.shape)
+      print(f"BaseImageInfo: (Size: {BaseImage.size}, Mode: {BaseImage.mode})")
+      print(f"TransformImageInfo: {img.shape}")
 
-    # blockごと(Transformer Encoderのlayer)のAttention Weightを取得 # L:層数, H:ヘッド数、N:パッチ数+クラストークン
-    attention_weight = []
-    for i in range(len(model.blocks)):
-      target_module = model.blocks[i].attn.attn_drop
-      features = self.extract(model, target_module, img.to(device)) # shape: (1, H, N, N)
-      attention_weight.append([features.to('cpu').detach().numpy().copy()])
-    attention_weight = np.squeeze(np.concatenate(attention_weight), axis=1) # shape: (L, H, N, N)
+      # blockごと(Transformer Encoderのlayer)のAttention Weightを取得 # L:層数, H:ヘッド数、N:パッチ数+クラストークン
+      attention_weight = []
+      for i in range(len(model.blocks)):
+        target_module = model.blocks[i].attn.attn_drop
+        features = self.extract(model, target_module, img.to(device)) # shape: (1, H, N, N)
+        attention_weight.append([features.to('cpu').detach().numpy().copy()])
+      attention_weight = np.squeeze(np.concatenate(attention_weight), axis=1) # shape: (L, H, N, N)
 
-    print(f"attetionWeightInfo(L, H, N, N): {attention_weight.shape}")
+      print(f"attetionWeightInfo(L, H, N, N): {attention_weight.shape}")
 
-    # ヘッド方向に平均
-    mean_head = np.mean(attention_weight, axis=1) # shape: (L, N, N)
-    print(f"attetionWeightInfo(L, N, N): {mean_head.shape}")
-    # NxNの単位行列を加算
-    mean_head = mean_head + np.eye(mean_head.shape[1])
-    # 正規化
-    mean_head = mean_head / mean_head.sum(axis=(1, 2))[:, np.newaxis, np.newaxis] # 層方向に乗算
-    v = mean_head[-1]
-    for n in range(1, len(mean_head)):
-        v = np.matmul(v, mean_head[-1 - n])
-    print(f"v.shape: {v.shape}")
-    # クラストークンと各パッチトークン間とのAttention Weightから、
-    # 入力画像サイズまで正規化しながらリサイズしてAttention Mapを生成
-    mask = v[0, 1:].reshape(14, 14)
-    attention_map = cv2.resize(mask / mask.max(), (img.shape[2], img.shape[3]))[..., np.newaxis]
-    # attention_map = cv2.resize(v, (imageSize, imageSize), interpolation=cv2.INTER_LINEAR)
-    inv_tensor = invTrans(img)[0]
-    # Attention MapとAttentionをかけた画像を生成
-    mask = torch.from_numpy(attention_map.astype(np.float32))
-    _, result = visualize_cam(mask, img.to(device))
+      # ヘッド方向に平均
+      mean_head = np.mean(attention_weight, axis=1) # shape: (L, N, N)
+      print(f"attetionWeightInfo(L, N, N): {mean_head.shape}")
+      # NxNの単位行列を加算
+      mean_head = mean_head + np.eye(mean_head.shape[1])
+      # 正規化
+      mean_head = mean_head / mean_head.sum(axis=(1, 2))[:, np.newaxis, np.newaxis] # 層方向に乗算
+      v = mean_head[-1]
+      for n in range(1, len(mean_head)):
+          v = np.matmul(v, mean_head[-1 - n])
+      print(f"v.shape: {v.shape}")
+      # クラストークンと各パッチトークン間とのAttention Weightから、
+      # 入力画像サイズまで正規化しながらリサイズしてAttention Mapを生成
+      mask = v[0, 1:].reshape(14, 14)
+      attention_map = cv2.resize(mask / mask.max(), (img.shape[2], img.shape[3]))[..., np.newaxis]
+      # attention_map = cv2.resize(v, (imageSize, imageSize), interpolation=cv2.INTER_LINEAR)
+      inv_tensor = invTrans(img)[0]
+      # Attention MapとAttentionをかけた画像を生成
+      mask = torch.from_numpy(attention_map.astype(np.float32))
+      _, result = visualize_cam(mask, img.to(device))
+      
+      return [inv_tensor, attention_map, result]
+  
+  def show_attention_map(self, imagesList:list, pdfPath:str='', savePdf:bool=True):
+      if imagesList:
+        with PdfPages(path_functions_instance.absolutePath(pdfPath)) as pdf:
+          # グラフを作成
+          plt.figure(figsize=[20,20], tight_layout=True)
+          maxRow=len(imagesList)
+          maxLen=len(imagesList[0])
+          imageIndex = 0
 
-    # 入力画像, Attention Map, Attentionをかけた画像を表示
-    plt.figure(figsize=[20, 20])
-    # 入力画像
-    plt.subplot(1, 3, 1)
-    # plt.imshow(input_image)
-    plt.imshow(inv_tensor.permute(1,2,0), vmin=0, vmax=1)
-    plt.title("Input Image")
-    plt.axis("off")
+          for idx, result in enumerate(imagesList):
+              input_image, attention_map, image_with_attention = result
+              # 入力画像
+              plt.subplot(maxRow, maxLen, 1+imageIndex)
+              plt.imshow(input_image.permute(1,2,0), vmin=0, vmax=1)
+              plt.title("Input Image")
+              plt.axis("off")
 
-    # Attention Mapの画像
-    plt.subplot(1, 3, 2)
-    plt.imshow(attention_map, cmap='jet')
-    plt.title("Attention Map")
-    plt.axis("off")
+              # Attention Mapの画像
+              plt.subplot(maxRow, maxLen, 2+imageIndex)
+              plt.imshow(attention_map, cmap='jet')
+              plt.title("Attention Map")
+              plt.axis("off")
 
-    # Attention Mapをかけた画像
-    plt.subplot(1, 3, 3)
-    plt.imshow(result.detach().cpu().numpy().transpose(1, 2, 0))
-    plt.title("Input Image with Attention")
-    plt.axis("off")
-    plt.show()
-    plt.savefig('./attention_rollout.pdf')
+              # Attention Mapをかけた画像
+              plt.subplot(maxRow, maxLen, 3+imageIndex)
+              plt.imshow(image_with_attention.detach().cpu().numpy().transpose(1, 2, 0))
+              plt.title("Input Image with Attention")
+              plt.axis("off")
+              imageIndex += maxLen
+          if savePdf: 
+              pdf.savefig()
+      else:
+          print("Error: noimag")
