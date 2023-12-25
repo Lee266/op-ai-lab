@@ -19,3 +19,21 @@ class PathFunctions:
         absolute_path = os.path.join(FIXED_DIRECTORY, targetPath.lstrip('/'))
 
         return absolute_path
+
+    @staticmethod
+    def getFileList(directory: str) -> list:
+        """指定されたディレクトリからファイルの一覧を取得します。
+
+        Args:
+            directory (str): フォルダのパス
+
+        Returns:
+            list: ファイルの一覧
+        """
+        file_list = []
+        directory = PathFunctions.absolutePath(directory)
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename) 
+            if os.path.isfile(file_path):
+                file_list.append(filename)
+        return file_list
