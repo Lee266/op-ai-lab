@@ -1,7 +1,5 @@
-.ipynb_checkpoints*
-
 # IPython Notebook のチェックポイント
-check-library.ipynb
+.ipynb_checkpoints*
 
 # Python コンパイルキャッシュ
 __pycache__
@@ -24,3 +22,5 @@ log.txt
 pretrained
 # 思いファイル管理しない
 *.pth
+
+*/datasets/*/Image/attack
