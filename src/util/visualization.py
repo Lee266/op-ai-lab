@@ -128,20 +128,18 @@ class Visualization:
               plt.imshow(input_image.permute(1,2,0), vmin=0, vmax=1)
               plt.title("Input Image")
               plt.axis("off")
-
               # Attention Mapの画像
               plt.subplot(maxRow, maxLen, 2+imageIndex)
-              plt.imshow(attention_map, cmap='jet')
+              plt.imshow(attention_map, cmap='jet', vmin=0, vmax=1)
               plt.title("Attention Map")
               plt.axis("off")
-
               # Attention Mapをかけた画像
               plt.subplot(maxRow, maxLen, 3+imageIndex)
-              plt.imshow(image_with_attention.detach().cpu().numpy().transpose(1, 2, 0))
+              plt.imshow(image_with_attention.detach().cpu().numpy().transpose(1, 2, 0), vmin=0, vmax=1)
               plt.title("Input Image with Attention")
               plt.axis("off")
               imageIndex += maxLen
           if savePdf: 
-              pdf.savefig()
+              pdf.savefig(bbox_inches='tight')
       else:
           print("Error: noimag")
