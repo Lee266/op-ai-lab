@@ -22,5 +22,6 @@ log.txt
 pretrained
 # 思いファイル管理しない
 *.pth
+!src/dev/result/weight/*.pth
 
 */datasets/*/Image/attack
