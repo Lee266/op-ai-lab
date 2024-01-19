@@ -25,3 +25,6 @@ pretrained
 !src/dev/result/weight/*.pth
 
 */datasets/*/Image/attack
+*/datasets/*/Image/patch
+*/datasets/*/Image/OverlayImages/*
+uploaded_images/*
