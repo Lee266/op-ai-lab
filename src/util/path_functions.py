@@ -3,6 +3,9 @@ import os
 FIXED_DIRECTORY = '/usr/src/ai-lab/src'
 
 class PathFunctions:
+    """_summary_
+        BasePath: '/usr/src/ai-lab/src'
+    """
     def __init__(self) -> None:
         print("Active PathFunctions instance created")
 
@@ -33,7 +36,7 @@ class PathFunctions:
         file_list = []
         directory = PathFunctions.absolutePath(directory)
         for filename in os.listdir(directory):
-            file_path = os.path.join(directory, filename) 
+            file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):
                 file_list.append(filename)
         return file_list

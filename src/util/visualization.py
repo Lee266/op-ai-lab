@@ -109,9 +109,9 @@ class Visualization:
       # Attention MapとAttentionをかけた画像を生成
       mask = torch.from_numpy(attention_map.astype(np.float32))
       _, result = visualize_cam(mask, img.to(device))
-      
+
       return [inv_tensor, attention_map, result]
-  
+
   def show_attention_map(self, imagesList:list, pdfPath:str='', savePdf:bool=True):
       if imagesList:
         with PdfPages(path_functions_instance.absolutePath(pdfPath)) as pdf:
@@ -139,7 +139,7 @@ class Visualization:
               plt.title("Input Image with Attention")
               plt.axis("off")
               imageIndex += maxLen
-          if savePdf: 
+          if savePdf:
               pdf.savefig(bbox_inches='tight')
       else:
           print("Error: noimag")

@@ -116,7 +116,7 @@ def swin_tiny_4_224(pretrained=False, num_classes:int=100, img_size:int=224, **k
 #resnet resnet101
 @register_model
 def cnn_resnet101(pretrained=False, num_classes:int=100, **kwargs):
-    model = timm.create_model('resnet101', pretrained=pretrained, num_classes=num_classes,)
+    model = timm.create_model('resnet101', pretrained=pretrained, num_classes=num_classes)
     return model
 
 # vgg19
