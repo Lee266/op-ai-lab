@@ -17,7 +17,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 def predict_image(model_type, weight_name):
     try:
         uploaded_file = request.files['image']
-        
+
         # 画像をPNG形式で保存
         img_path = os.path.join(UPLOAD_FOLDER, f"{uploaded_file.filename.split('.')[0]}.png")
         uploaded_file.save(img_path)
@@ -31,7 +31,6 @@ def predict_image(model_type, weight_name):
         ])
         img_tensor = transform(img)
         img_tensor = img_tensor.unsqueeze(0)
-
         # モデルの作成と重みの読み込み
         model = timm.create_model(model_type, pretrained=False, num_classes=10, img_size=224)
         weight_path = f"./src/dev/result/weight/mnist-{weight_name}.pth"
@@ -39,7 +38,7 @@ def predict_image(model_type, weight_name):
             model.load_state_dict(torch.load(weight_path, map_location=torch.device('cpu')))
         except Exception as e:
             return jsonify({'error': f'Failed to load the model weights: {str(e)}'}), 500
-        
+
         # 推論モードでの出力取得
         model.eval()
         with torch.no_grad():
@@ -49,7 +48,7 @@ def predict_image(model_type, weight_name):
         # ソフトマックス関数を適用し、パーセンテージに変換
         softmax_output = torch.nn.functional.softmax(output, dim=-1)
         percentages = (softmax_output * 100).round().tolist()[0]
-        
+
         # 予測結果の取得
         _, indices = torch.topk(output, k=output.size(-1), dim=-1)
         predictions = [{'label': str(idx.item()), 'value': int(percentages[idx])} for idx in indices[0]]
